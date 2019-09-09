@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/contrib/static"
+	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	order "github.com/mkhalegaonkar3/product-service-go/order"
 	products "github.com/mkhalegaonkar3/product-service-go/products"
@@ -16,10 +16,10 @@ import (
 
 // used to match which service is being called
 const (
-	ADDPRODUCT  = "addProduct"
-	GETPRODUCTS = "getProducts"
-	PLACEORDER  = "placeOrder"
-	SHIPPING    = "shipping"
+	ADDPRODUCT  = "/addProduct"
+	GETPRODUCTS = "/getProducts"
+	PLACEORDER  = "/placeOrder"
+	SHIPPING    = "/getShipping"
 )
 
 func main() {
@@ -97,6 +97,6 @@ func requestRouter(c *gin.Context) {
 	case PLACEORDER:
 		order.PlaceOrder(c)
 	case SHIPPING:
-		//TODO
+		shipping.GetShippingDetails(c)
 	}
 }
