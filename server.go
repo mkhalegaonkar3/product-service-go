@@ -12,6 +12,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	order "github.com/mkhalegaonkar3/product-service-go/order"
 	products "github.com/mkhalegaonkar3/product-service-go/products"
+	shipping "github.com/mkhalegaonkar3/product-service-go/shipping"
 )
 
 // used to match which service is being called
