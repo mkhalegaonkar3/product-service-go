@@ -2,143 +2,99 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"net/http"
-	"strconv"
+	"time"
 
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	order "github.com/mkhalegaonkar3/product-service-go/order"
+	products "github.com/mkhalegaonkar3/product-service-go/products"
 )
 
-var db *gorm.DB
-
-type (
-	product struct {
-		gorm.Model
-		ProductName     string `json:"product_name"`
-		ProductQuantity int    `json:"product_quantity"`
-		ProductPrice    int    `json:"product_price"`
-	}
-	transformedProduct struct {
-		ProductID       uint   `json:"id"`
-		ProductName     string `json:"product_name"`
-		ProductQuantity int    `json:"product_quantity"`
-		ProductPrice    int    `json:"product_price"`
-	}
-	order struct {
-		gorm.Model
-		//OrderID uint               `json:"id"`
-		Product      transformedProduct `gorm:"foreignkey:productRefer`
-		Order_Amount int                `json:"order_amount"`
-	}
+// used to match which service is being called
+const (
+	ADDPRODUCT  = "addProduct"
+	GETPRODUCTS = "getProducts"
+	PLACEORDER  = "placeOrder"
+	SHIPPING    = "shipping"
 )
-
-func init() {
-	var err error
-
-	db, err = gorm.Open("mysql", "root:root@/OrderManagement?charset=utf8&parseTime=True&loc=Local")
-	if err != nil {
-		panic("failed to connect to database")
-	}
-	db.AutoMigrate(&product{})
-}
 
 func main() {
-
-	router := gin.Default()
-	router.Use(static.Serve("/", static.LocalFile("./view", true)))
-
-	v1 := router.Group("/api/v1/products")
-	v2 := router.Group("/api/v2/orders")
-
-	v1.POST("/", addProduct)
-	v1.GET("/", getProducts)
-	v2.POST("/", placeOrder)
-
-	router.Run()
-}
-func addProduct(c *gin.Context) {
-	price, _ := strconv.Atoi(c.PostForm("pprice"))
-	quantity, _ := strconv.Atoi(c.PostForm("pquantity"))
-	prod := product{
-
-		ProductName:     c.PostForm("pname"),
-		ProductPrice:    price,
-		ProductQuantity: quantity,
-	}
-	db.Save(&prod)
-	c.JSON(http.StatusCreated, gin.H{
-		"status":  http.StatusCreated,
-		"message": "Product added successfully",
-	})
-
+	rand.Seed(time.Now().UTC().UnixNano())
+	router := initRouter()
+	router.Run(":8888")
 }
 
-func getProducts(c *gin.Context) {
-	var products []product
-	var _products []transformedProduct
+func initRouter() *gin.Engine {
 
-	db.Find(&products)
-	if len(products) <= 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No products found !!"})
-		return
-	}
-	for _, item := range products {
-		_products = append(_products, transformedProduct{ProductID: item.ID, ProductName: item.ProductName, ProductQuantity: item.ProductQuantity, ProductPrice: item.ProductPrice})
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"status": http.StatusOK,
-		"data":   _products,
-	})
+	r := gin.New()
+	r.Use(gin.Recovery(), plainLoggerWithWriter(gin.DefaultWriter))
+
+	r.GET("/status", statusCheck)
+	r.POST("/addProduct", requestRouter)
+	r.GET("/getProducts", requestRouter)
+	r.POST("/placeOrder", requestRouter)
+
+	return r
 }
 
-func placeOrder(c *gin.Context) {
-	pname := c.PostForm("pname")
-	//fmt.Println("............asdsf............", pname)
-	//pname := "Mirinda"
-	// := 5
-	qty, _ := strconv.Atoi(c.PostForm("pqty"))
+// PlainLoggerWithWriter mimics the Gin LoggerWithWriter without the colors
+func plainLoggerWithWriter(out io.Writer) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Start timer
+		start := time.Now()
 
-	avail, prod, amt := isProductAvailable(pname, qty)
-	if avail {
+		// Process request
+		c.Next()
 
-		fmt.Println("placed order is succefull...")
-		ord := order{
+		// Stop timer
+		end := time.Now()
+		latency := end.Sub(start)
 
-			Product: transformedProduct{
-				ProductID:       prod.ID,
-				ProductName:     pname,
-				ProductQuantity: qty,
-				ProductPrice:    prod.ProductPrice,
-			},
-			Order_Amount: amt,
+		if c.Request.URL.Path != "/status" {
+			fmt.Fprintf(out, "%s [%s] %s [%v] \"%s %s %s\" %d %d %v %s %s %s \"%s\"\n",
+				c.ClientIP(),
+				c.Request.UserAgent(),
+				c.Request.Header.Get(gin.AuthUserKey),
+				end.Format("02/Jan/2006:15:04:05 -0700"),
+				c.Request.Method,
+				c.Request.URL.Path,
+				c.Request.Proto,
+				c.Writer.Status(),
+				c.Writer.Size(),
+				fmt.Sprintf("%.4f", latency.Seconds()),
+				c.Request.Header.Get("RequestType"),
+				c.Request.Header.Get("ResponseSource"),
+				c.Request.Form.Encode(),
+				c.Request.Header.Get("ResponseBody"),
+			)
 		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":  http.StatusOK,
-			"message": "placed order is succeful...!",
-			"data":    ord,
-		})
-
-	} else {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "No Product found !!"})
-		return
 	}
-
 }
-func isProductAvailable(pname string, qty int) (bool, product, int) {
-	available := false
-	amt := 0
-	var prod product
-	db.Where("product_name = ?", pname).First(&prod)
 
-	if pname == prod.ProductName && qty <= prod.ProductQuantity {
-		available = true
-		amt = prod.ProductPrice * qty
-		remainingQuantity := prod.ProductQuantity - qty
-		db.Model(&prod).Update("product_quantity", remainingQuantity)
-		return available, prod, amt
+// statusCheck returns a 200/OK when called if we can contact the be env
+func statusCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+func exception(c *gin.Context) {
+	c.JSON(500, gin.H{"success": false, "error": "Unable to process order"})
+}
+
+func requestRouter(c *gin.Context) {
+
+	path := c.Request.URL.Path
+	fmt.Println("The obtained path is:- ", path)
+	switch path {
+	case ADDPRODUCT:
+		products.AddProduct(c)
+	case GETPRODUCTS:
+		products.GetProducts(c)
+	case PLACEORDER:
+		order.PlaceOrder(c)
+	case SHIPPING:
+		//TODO
 	}
-	return available, prod, amt
 }
