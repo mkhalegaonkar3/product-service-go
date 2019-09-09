@@ -28,9 +28,15 @@ type (
 	}
 	order struct {
 		gorm.Model
-		//OrderID uint               `json:"id"`
-		Product      transformedProduct `gorm:"foreignkey:productRefer`
-		Order_Amount int                `json:"order_amount"`
+		Product      product `gorm:"foreignkey:ProductID"`
+		ProductID    uint
+		Order_Amount int `json:"order_amount"`
+	}
+	transformedOrder struct {
+		OrderID      uint
+		Product      transformedProduct
+		ProductID    uint
+		Order_Amount int
 	}
 )
 
@@ -42,6 +48,7 @@ func init() {
 		panic("failed to connect to database")
 	}
 	db.AutoMigrate(&product{})
+	//db.AutoMigrate(&order{})
 }
 
 func main() {
@@ -106,18 +113,30 @@ func placeOrder(c *gin.Context) {
 		fmt.Println("placed order is succefull...")
 		ord := order{
 
-			Product: transformedProduct{
-				ProductID:       prod.ID,
+			Product: product{
+
+				//ProductID:       prod.ID,
 				ProductName:     pname,
 				ProductQuantity: qty,
 				ProductPrice:    prod.ProductPrice,
 			},
 			Order_Amount: amt,
 		}
+		db.Save(&ord)
+		// _ord := transformedOrder{
+		// 	OrderID: ord.ID,
+		// 	Product: transformedProduct{
+		// 		ProductID:       prod.ID,
+		// 		ProductName:     pname,
+		// 		ProductQuantity: qty,
+		// 		ProductPrice:    prod.ProductPrice,
+		// 	},
+		// 	Order_Amount: amt,
+		// }
 
 		c.JSON(http.StatusOK, gin.H{
 			"status":  http.StatusOK,
-			"message": "placed order is succeful...!",
+			"message": "placed order is succefull...!",
 			"data":    ord,
 		})
 
