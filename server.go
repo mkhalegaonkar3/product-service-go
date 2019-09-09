@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/contrib/static"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	order "github.com/mkhalegaonkar3/product-service-go/order"
 	products "github.com/mkhalegaonkar3/product-service-go/products"
@@ -30,6 +31,7 @@ func main() {
 func initRouter() *gin.Engine {
 
 	r := gin.New()
+	r.Use(static.Serve("/", static.LocalFile("./view", true)))
 	r.Use(gin.Recovery(), plainLoggerWithWriter(gin.DefaultWriter))
 
 	r.GET("/status", statusCheck)
