@@ -13,6 +13,7 @@ import (
 	order "github.com/mkhalegaonkar3/product-service-go/order"
 	products "github.com/mkhalegaonkar3/product-service-go/products"
 	shipping "github.com/mkhalegaonkar3/product-service-go/shipping"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 // used to match which service is being called
@@ -30,8 +31,11 @@ func main() {
 }
 
 func initRouter() *gin.Engine {
+	f
 
 	r := gin.New()
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(r)
 	r.Use(static.Serve("/", static.LocalFile("./view", true)))
 	r.Use(gin.Recovery(), plainLoggerWithWriter(gin.DefaultWriter))
 
