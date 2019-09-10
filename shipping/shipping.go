@@ -12,25 +12,8 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-//GetShippingDetails
+//GetShippingDetails func
 func GetShippingDetails(c *gin.Context) {
-
-	//var (
-	// 	// kafka
-	// 	kafkaBrokerUrl     string
-	// 	kafkaVerbose       bool
-	// 	kafkaTopic         string
-	//	kafkaConsumerGroup string
-	// 	kafkaClientId      string
-	// )
-
-	// flag.StringVar(&kafkaBrokerUrl, "kafka-brokers", "localhost:19092,localhost:29092,localhost:39092", "Kafka brokers in comma separated value")
-	// flag.BoolVar(&kafkaVerbose, "kafka-verbose", true, "Kafka verbose logging")
-	// flag.StringVar(&kafkaTopic, "kafka-topic", "foo", "Kafka topic. Only one topic per worker.")
-	//flag.StringVar(&kafkaConsumerGroup, "kafka-consumer-group", "consumer-group", "Kafka consumer group")
-	// flag.StringVar(&kafkaClientId, "kafka-client-id", "my-client-id", "Kafka client id")
-
-	//flag.Parse()
 
 	brokers := strings.Split(kafkaconfig.KafkaBrokerUrl, ",")
 	config := kafka.ReaderConfig{

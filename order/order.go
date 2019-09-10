@@ -39,9 +39,6 @@ var custInfo = customer{
 // PlaceOrder func
 func PlaceOrder(c *gin.Context) {
 	pname := c.PostForm("pname")
-	//fmt.Println("............asdsf............", pname)
-	//pname := "Mirinda"
-	// := 5
 	qty, _ := strconv.Atoi(c.PostForm("pqty"))
 
 	avail, prod, amt := products.IsProductAvailable(pname, qty)
