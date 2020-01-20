@@ -6,6 +6,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+//Db
 var Db *gorm.DB
 
 func init() {
